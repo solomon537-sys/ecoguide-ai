@@ -1,19 +1,6 @@
-# секреты
-.env
-
-# Python
-__pycache__/
-*.pyc
-venv/
-.venv/
-
-# локальная база статистики
-events.db
-
-# системные файлы
-.DS_Store
-Thumbs.db
-
-# датасет и архивы (не заливаем, даём ссылку в README)
-dataset/
-*.zip
+fastapi
+uvicorn
+python-multipart
+pillow
+numpy==1.26.4
+tensorflow-cpu==2.15.0
