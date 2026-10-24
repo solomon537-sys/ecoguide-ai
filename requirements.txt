@@ -1,0 +1,19 @@
+# секреты
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# локальная база статистики
+events.db
+
+# системные файлы
+.DS_Store
+Thumbs.db
+
+# датасет и архивы (не заливаем, даём ссылку в README)
+dataset/
+*.zip

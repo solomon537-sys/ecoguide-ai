@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EcoGuide AI</title>
+</head>
+<body>
+  <h1>EcoGuide AI</h1>
+  <p>Поднесите предмет к камере и нажмите кнопку</p>
+
+  <video id="video" autoplay playsinline muted width="320"></video>
+  <canvas id="canvas" hidden></canvas>
+  <br>
+  <button id="btn">Распознать</button>
+
+  <div id="box" style="margin-top:12px;padding:12px;color:#fff;background:#555">
+    <h2 id="result">Ожидание</h2>
+    <p id="tip"></p>
+  </div>
+
+  <div id="manual" hidden>
+    <p>Выберите вручную:</p>
+    <div id="manual-buttons"></div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const box = document.getElementById("box");
+    const result = document.getElementById("result");
+    const tip = document.getElementById("tip");
+    const manual = document.getElementById("manual");
+    let rules = null;
+
+    function show(text, hex, tipText) {
+      result.textContent = text;
+      tip.textContent = tipText || "";
+      box.style.background = hex || "#555";
+    }
+
+    async function init() {
+      try {
+        rules = await (await fetch("/rules")).json();
+        const holder = document.getElementById("manual-buttons");
+        for (const key in rules.classes) {
+          const b = document.createElement("button");
+          b.textContent = rules.classes[key].name;
+          b.onclick = () => {
+            const c = rules.classes[key];
+            const f = rules.fractions[c.fraction];
+            show(c.name + " → " + f.name + " (" + c.fraction + "). Бросьте в " + f.color + " контейнер", f.hex, c.tip);
+            manual.hidden = true;
+          };
+          holder.appendChild(b);
+        }
+      } catch (e) {}
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+      } catch (e) {
+        show("Камера недоступна. Используйте маркировку контейнеров", "#aa2222");
+        manual.hidden = false;
+      }
+    }
+
+    document.getElementById("btn").onclick = () => {
+      if (!video.videoWidth) { show("Камера не готова", "#aa2222"); return; }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+      show("Обработка...", "#555");
+      canvas.toBlob(async (blob) => {
+        try {
+          const form = new FormData();
+          form.append("file", blob, "frame.jpg");
+          const r = await fetch("/predict", { method: "POST", body: form });
+          if (!r.ok) throw new Error("server");
+          const d = await r.json();
+          show(d.message, d.color_hex, d.tip);
+          manual.hidden = (d.status === "ok");
+        } catch (e) {
+          show("Сервер недоступен. Используйте маркировку контейнеров", "#aa2222");
+          manual.hidden = false;
+        }
+      }, "image/jpeg", 0.9);
+    };
+
+    init();
+  </script>
+</body>
+</html>
